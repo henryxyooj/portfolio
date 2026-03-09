@@ -1,0 +1,320 @@
+<!DOCTYPE html> 
+<html>
+    <head>
+        <title>MIPS Single Cycle Datapath Project</title>
+        <link rel="stylesheet" href="../styles/project_styles.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    </head>    
+
+    <body>
+        <div class="wrapper">
+            <header class="header">
+                <div class="divider">
+                    <span class="divider__yellow"></span>
+                    <span class="divider__red"></span>
+                    <span class="divider__yellow"></span>
+                </div>
+
+                <h1 class="header__title">MIPS Single Cycle Datapath</h1>
+
+                <div class="divider">
+                    <span class="divider__yellow"></span>
+                    <span class="divider__red"></span>
+                    <span class="divider__yellow"></span>
+                </div>
+            </header>
+            
+            <div class="intro__container">
+                <div class="intro">
+                    <p class="intro__hey">HEY!</p>
+                    <p class="intro__desc">
+                        Thanks for checking out this writeup of my <strong>MIPS single cycle datapath project</strong>.  
+                        This was a course assignment that I enjoyed working on even though it was the most frustrating project I had ever encountered.  
+                        This project is a Java-based simulator that takes MIPS machine code instructions and simulates the internal workings of a MIPS processor.
+                        Check out the <strong>"Table of Contents"</strong> to view the parts that may interest you!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="table__of__contents">
+                <h2 class="contents__header">Table of Contents</h2>
+                <ul class="toc__list">
+                    <li><a href="#context">Context (Supported Instructions)</a></li>
+                    <li><a href="#previous__implementation">Previous Implementation</a></li>
+                    <li><a href="#why__refine__it">Why Refine It?</a></li>
+                    <li><a href="#refined__implementation">Refined Implementation</a></li>
+                    <li><a href="#difficulties">Difficulties</a></li>
+                    <li><a href="#technologies">Technologies Used</a></li>
+                    <li><a href="#key__takeaways">Key Takeaways</a></li>
+                    <li><a href="#demo__previous">Demo of Previous Implementation</a></li>
+                    <li><a href="#demo__refined">Demo of Refined Implementation</a></li>
+                </ul>
+            </div>
+
+            <div class="page__content">
+                <section id="context">
+                    <h2 class="context__header">Context</h2>
+                        <p>
+                            MIPS stands for <strong>Microprocessor without Interlocked Pipeline Stages</strong>.
+                            It is an <strong>Set Architecture (ISA)</strong>, a specification that defines how software communicates with hardware through a set of instructions.
+                            After high-level languages like Java or Python are compiled or interpreted, the code is translated into assembly language, and then further down into binary machine code that the processor can read and execute.
+                            MIPS is one of those assembly-level ISAs that sits in that middle layer.
+                        </p>
+                        
+                        <p>
+                            Over the years, processor design has evolved to include optimizations such as control hazard handling, branch prediction, instruction scheduling, forwarding, and pipelining.
+                            This implementation focuses on the most fundamental version of a processor — hence the name, single cycle datapath — where each instruction completes all five stages in one clock cycle with no overlap.
+                            The MIPS ISA has 32 registers that hold the current state of the processor.
+                            Not all registers serve the same purpose — some are reserved for specific roles, such as the zero register ($zero), the stack pointer ($sp), and the return address register ($ra).
+                        </p>
+
+                        <p class="five__stages">The five stages are:</p>
+                        <div class="stages__grid">
+                            <div class="stage__card">
+                                <span class="stage__label">IF</span>
+                                <span><strong>Instruction Fetch</strong> — retrieves the current instruction and increments the Program Counter (PC) to point to the next one.</span>
+                            </div>
+                            <div class="stage__card">
+                                <span class="stage__label">ID</span>
+                                <span><strong>Instruction Decode</strong> — breaks the 32-bit instruction into fields, reads the relevant registers, and uses control signals to determine what type of instruction it is.</span>
+                            </div>
+                            <div class="stage__card">
+                                <span class="stage__label">EX</span>
+                                <span><strong>Execute</strong> — uses the ALU to perform any required arithmetic or logical computation. For instructions like <code>sw</code> or <code>lw</code>, this stage calculates the memory address instead.</span>
+                            </div>
+                            <div class="stage__card">
+                                <span class="stage__label">MEM</span>
+                                <span><strong>Memory</strong> — reads from or writes to data memory if the instruction requires it. Otherwise, this stage is passed through.</span>
+                            </div>
+                            <div class="stage__card">
+                                <span class="stage__label">WB</span>
+                                <span><strong>Write Back</strong> — writes the final computed value back into the destination register. This stage is skipped if the instruction has no destination register to update.</span>
+                            </div>
+                        </div>
+
+                        <p class="supported__instructions">For this project, the following instructions are supported:</p>
+                        <div class="instruction__tags">
+                            <span>add</span><span>addi</span><span>addiu</span><span>and</span><span>andi</span>
+                            <span>beq</span><span>bne</span><span>j</span><span>jr</span><span>jal</span>
+                            <span>lui</span><span>lw</span><span>or</span><span>ori</span><span>slt</span>
+                            <span>sub</span><span>sw</span><span>syscall</span>
+                        </div>
+
+                        <p class="instruction__syscall_supports">syscall supports: print integer, print string, read integer, and exit.</p>
+                </section>
+
+                <section id="previous__implementation">
+                    <h2 class="previous__header">Previous Implementation</h2>
+                        <p>
+                            The first design challenge was figuring out how to model the three core runtime components of a MIPS program in memory: the registers, the data segment, and the text segment.
+                            The main decision came down to data structure — arrays or hashmaps.
+                        </p>
+
+                        <p>
+                            I started with arrays since I was more comfortable with them and liked that index-based access is O(1).
+                            However, I ran into problems quickly.
+                            The nature of this implementation meant I frequently needed to shift or reassign values at specific indices, and some values needed to cross-reference into entirely separate arrays.
+                            It became mentally difficult to track where everything lived, and the bookkeeping around index management turned into a recurring headache.
+                        </p>
+
+                        <p>
+                            Hashmaps solved those problems cleanly.
+                            I ended up with a single ISA object — backed by hashmaps — that held the register state, the data segment parsed from the .asm file, and the text segment of instructions.
+                            Each stage function (and any helper functions it used) would read from and modify the ISA object.
+                        </p>
+
+                        <p class="previous__structure">Here's how each stage was structured in this implementation:</p>
+                        <div class="impl__stages">
+                            <div class="impl__stage">
+                                <span class="impl__label">Main</span>
+                                <span>Initialized the ISA object with default register values, parsed the data segment, and loaded the text segment instructions in preparation for the cycle.</span>
+                            </div>
+                            <div class="impl__stage">
+                                <span class="impl__label">IF</span>
+                                <span>Incremented the PC, checked whether all instructions had been executed, and handled any toggled jump from a previous instruction.</span>
+                            </div>
+                            <div class="impl__stage">
+                                <span class="impl__label">ID</span>
+                                <span>Parsed the current instruction string, extracted the opcode, and through switch cases, led to the appropriate path in EX.</span>
+                            </div>
+                            <div class="impl__stage">
+                                <span class="impl__label">EX</span>
+                                <span>Contained separate handler functions for each instruction category: R-type, I-type, <code>lw</code>, <code>sw</code>, and J-type, each responsible for computing the appropriate result.</span>
+                            </div>
+                            <div class="impl__stage">
+                                <span class="impl__label">MEM</span>
+                                <span>Checked whether a <code>lw</code> or <code>sw</code> was active and either read from or wrote to the data segment.</span>
+                            </div>
+                            <div class="impl__stage">
+                                <span class="impl__label">WB</span>
+                                <span>Modified the result of the cycle back to the destination register in the ISA object.</span>
+                            </div>
+                        </div>
+                </section>
+
+                <section id="why__refine__it">
+                    <h2 class="why__header">Why Refine It?</h2>
+                        <div class="why__refine__it__container">
+                            <p>
+                                The previous implementation worked.
+                                It produced correct results and I earned a perfect score on the assignment.
+                                But just because it works and gets the correct results, it didn't feel like enough.
+                                I feel like it was still missing the internal workings of the MIPS processor.
+                            </p>
+
+                            <p>
+                                The original version simulated the outcomes of each instruction without modeling the mechanisms that I learned in class: no control signals, no ALU abstraction, no multiplexers making routing decisions.
+                                Those mechanisms, I somewhat knew and forced the routes to where I wanted them to go to.
+                                I knew the implementation could more faithfully represent the datapath, and I wanted to build that version as best as I can.
+                            </p>
+
+                            <p>
+                                There's also a personal obligation to it.
+                                Due to other course work, managing a job, and life responsibilities, I wasn't able to create what I wanted.
+                                Refining this project was my way of going back and doing it properly — not for a grade, but because I wanted to produce something I could be proud of.
+                                Call it stubbornness, or call it craft.
+                                Either way, that's what drove it.
+                            </p>
+                        </div>
+                </section>
+
+                <section id="refined__implementation">
+                    <h2 class="refined__header">Refined Implementation</h2>
+                        <div class="refined__implementation__container">
+                            <p>
+                                The foundation carried over from the previous implementation — the ISA object passing through each stage of the cycle was still the right model, so I kept it.
+                                What changed was everything built on top of it.
+                            </p>
+                            <p>
+                                The most meaningful structural decision was breaking certain components out into their own dedicated class files.
+                                The ALU and DataMemory, for example, each became their own module.
+                                This made the codebase easier to keep track of since each class has a clearly defined responsibility, and its behavior is within that class file rather than scattered across the cycle functions.
+                            </p>
+                            <p>
+                                It also made testing individual components easier.
+                                While on the topic of testing, adding JUnit was one of the better decisions I made.
+                                The previous implementation relied on rerunning the entire program and sifting through print statements to catch what was wrong, which was slow and detrimental to my posture.
+                                JUnit gave the debugging process actual structure.
+                                I could isolate a specific component, define what correct behavior looked like, and verify it independently before trusting it inside the larger cycle.
+                                It made the whole process feel far less like guessing.
+                            </p>
+                            <p>
+                                The most significant addition was implementing control signals and multiplexers.
+                                These are what give the datapath its ability to route information correctly depending on the current instruction.
+                                The control signals are set based on the opcode and function code of the instruction, and the multiplexers use those signal values to decide, for example, whether the ALU's second operand should come from a register or an immediate value, or whether the write-back value should come from the ALU result or from memory.
+                                Without these, the original implementation was essentially hardcoding those decisions with my knowledge of the cycles rather than modeling the actual hardware behavior.
+                            </p>
+                            <p>
+                                I also added assertions throughout to enforce correctness at runtime — verifying, for instance, that control unit outputs were set to expected values for a given instruction type.
+                                This caught several subtle bugs that would have otherwise been very difficult to trace.
+                            </p>
+                        </div>
+                </section>
+
+                <section id="difficulties">
+                    <h2 class="difficulties__header">Difficulties</h2>
+                        <div class="difficulty__cards">
+
+                            <div class="difficulty__card">
+                                <h3>Printing Strings</h3>
+                                <p>The hardest problem in this entire project was printing strings because I wasn't able to find the information needed to implement it. The course textbook, online resources, and even LLMs couldn't give me a clear answer. My first instinct was to brute-force it: read the hexadecimal values stored in the data segment, translate them to human-readable characters, and output the result. The problem was that this approach broke my existing <code>lw</code> and <code>sw</code> logic, and I still wasn't correctly tracking memory addresses. It didn't work, but it did deepen my understanding of how the data segment was laid out.</p>
+                                <p>The light bulb moment came from observing MARS directly. I loaded test programs into the MARS simulator and watched how it represented data in memory. I noticed that every two characters in a hexadecimal value were byte-reversed — I had been reading the hex values in the wrong order the whole time. I also discovered that each string in the data segment is null-terminated, meaning the character <code>"00"</code> in hex marks the end of one value and the beginning of the next. Once I understood both of those things, I could correctly extract strings by reading from one null terminator to the next.</p>
+                                <p>One remaining issue was alignment. Since values are stored in 4-byte increments, extracting a single character from within a data segment entry sometimes returned only part of the value rather than the full content. I had to implement my own memory alignment logic to handle this correctly.</p>
+                            </div>
+
+                            <div class="difficulty__card">
+                                <h3>Branches and Jumps</h3>
+                                <p>Branches and jump instructions were deeply intertwined in ways that made debugging both of them at the same time painful — when one broke, the other tended to break with it. A significant part of the difficulty was figuring out where to increment the PC. The right placement wasn't obvious, and moving it to different spots in the cycle would fix one instruction type while silently breaking another. Having the PC incremented before certain cycles would calculate the address incorrectly, but placing it too far along wouldn't produce the right calculated address either. Due to the sequential nature of code execution — versus the parallel nature of actual hardware — finding the right spot required a lot of trial and error.</p>
+                                <p><code>jal</code> was particularly confusing for a long time. Like other J-type instructions, the first 6 bits are the opcode. But the remaining 26 bits aren't a raw address — they're a masked value that has to be shifted and combined with the upper bits of the current PC to produce the actual jump target. Understanding that transformation took a while, but once it clicked, the other J-type instructions became much easier to reason about.</p>
+                            </div>
+
+                            <div class="difficulty__card">
+                                <h3>Load Word and Store Word</h3>
+                                <p>These weren't as difficult as the above, but they had their own debugging issues. The memory address computed through the cycle was being represented in decimal while I was comparing it against hexadecimal values — they were actually the same address, just in different formats, and it took an embarrassingly long time to realize that. Once I cleared that up, <code>lw</code> was straightforward.</p>
+                                <p><code>sw</code> was harder. Storing a value back to the correct memory address required careful alignment, and getting the memory to land in the correct location took several iterations to get right.</p>
+                            </div>
+
+                            <div class="difficulty__card">
+                                <h3>Load Upper Immediate</h3>
+                                <p><code>lui</code> wasn't part of the original assignment requirements and doesn't appear in the standard single cycle datapath diagram, which is why it took so long to implement. It turned out to be necessary as a supporting instruction for some pseudo-instructions. After not being able to find a clear explanation in the usual resources, I eventually found a writeup specifically addressing how <code>lui</code> gets implemented onto a single cycle datapath, which gave me the foothold I needed to implement it correctly.</p>
+                            </div>
+                        </div>
+                </section>
+
+                <section id="technologies">
+                    <h2 class="technologies__header">Technologies Used</h2>
+                        <div class="tech__list">
+                            <div class="tech__ls">
+                                <span class="tech__item"><strong>Java</strong></span> 
+                                <span>— used to build the simulator, chosen for its OOP structure to model the discrete processor components.</span>
+                            </div>
+
+                            <div class="tech__ls">
+                                <span class="tech__item"><strong>JUnit</strong></span> 
+                                <span>— used for unit testing individual components like the ALU and DataMemory in isolation, as well as full-cycle tests of specific programs written in MARS.</span>
+                            </div>
+
+                            <div class="tech__ls">
+                                <span class="tech__item"><strong>MARS</strong></span> 
+                                </span>— (MIPS Assembler and Runtime Simulator) used as a reference implementation to verify expected behavior and debug memory layout.</span>
+                            </div>
+                        </div>
+                </section>
+
+                <section id="key__takeaways">
+                    <h2 class="takeaway__header">Key Takeaways</h2>
+                        <p>
+                            I mentioned at the start of this writeup that I enjoyed this project even though it was the most frustrating thing I had worked on in my CS curriculum. Looking back, I think the frustration and the enjoyment were the same thing. I remember sitting with this project for hours without noticing time pass — the same song looping in the background, browser tabs stacked with the same question phrased five different ways, sifting through notes and textbook chapters, print debugging my way forward one line at a time. It was one of the first times I felt completely absorbed by a problem. This project showed me a version of myself as a developer that I hadn't seen before.
+                        </p>
+                        <div class="takeaway__cards">
+
+                            <div class="takeaway__card">
+                                <h3>Use the right tool for the right job</h3>
+                                <p>I came into this project wanting to use arrays for everything because they were familiar. Hashmaps were the better choice and it took hitting a wall to see that. The same pattern showed up with string printing — I spent a long time looking for someone to hand me an explanation before I just opened MARS and observed the behavior directly. The answer was there the whole time. I prolonged a lot of stress by being too attached to my first approach and too stubborn to try a different one. That's something I want to keep working on.</p>
+                            </div>
+
+                            <div class="takeaway__card">
+                                <h3>Go to the source</h3>
+                                <p>Some problems don't have a clean writeup online. When I couldn't find a satisfying explanation for how string memory worked in MIPS, the most useful thing I did was load a test program into MARS and watch what happened. Learning to trust direct observation — rather than waiting for someone else's explanation — is a debugging instinct I want to keep developing.</p>
+                            </div>
+
+                            <div class="takeaway__card">
+                                <h3>Testing gives structure</h3>
+                                <p>I learned about unit testing in another course and wished I had been taught it earlier — it would have helped with many previous assignments. Adding JUnit to the refined implementation changed how I worked in a meaningful way. Instead of rerunning the entire program and hunting through print statements, I could isolate a component, define what correct behavior looked like, and verify it on its own terms. It made the process feel disciplined rather than chaotic. I want to bring that habit into every project going forward.</p>
+                            </div>
+
+                            <div class="takeaway__card">
+                                <h3>Modular design makes complexity manageable</h3>
+                                <p>Breaking the ALU and DataMemory into their own classes made each piece of the system easier to understand, test, and modify in isolation. It's a principle I knew before this project, but the programs I've built to be modular have proven time and time again to be a great idea.</p>
+                            </div>
+
+                            <div class="takeaway__card">
+                                <h3>Variable names matter more than you think</h3>
+                                <p>During the early days of my CS curriculum, I basically wrote something, and if it worked, it worked — no matter how ugly it was. Going back to the previous implementation was disorienting because of how unclear some of the names were. Even in the refined version I still stop and think about what a variable represents. Naming something <code>instruction_25_21</code> is technically precise but practically useless two weeks later. Finding a middle ground — names that are both accurate and readable — is a craft I'm still actively developing.</p>
+                            </div>
+                        </div>
+                </section>   
+
+                <section id="demo__previous">
+                    <h2 class="previous__header">Demo of Previous Implementation</h2>
+                        <div class="previous__placeholder">Video demo coming soon</div>
+                </section>
+
+                <section id="demo__refined">
+                    <h2 class="refined__header">Demo of Refined Implementation</h2>
+                        <div class="refined__placeholder">Video demo coming soon</div>
+                </section>
+            </div>
+            
+            <footer class="footer">
+                <div class="divider">
+                    <span class="divider__yellow"></span>
+                    <span class="divider__red"></span>
+                    <span class="divider__yellow"></span>
+                </div>
+            </footer>
+        </div>
+    </body>
+</html>
