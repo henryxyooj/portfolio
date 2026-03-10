@@ -33,6 +33,27 @@ body {
     padding: 0 1rem;
 }
 
+@view-transition {
+    navigation: auto;
+}
+
+@keyframes slide-from-bottom {
+  from {
+    transform: translateY(100vw);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+::view-transition-old(root) {
+  animation: none;
+}
+
+::view-transition-new(root) {
+  animation: slide-from-bottom 0.3s;
+}
+
 .divider {
     padding: 2rem;
     display: flex;
@@ -131,10 +152,21 @@ p {
     border-radius: 10%;
 }
 
+.toc__list li {
+    transition: 
+        transform 200ms ease-in-out;
+}
+
+.toc__list li:hover {
+    transform: scale(1.10);
+}
+
 .toc__list li a {
     color: var(--main-contra);
     text-decoration: none;
-    transition: color 0.15s;
+    transition: 
+        color 0.15s,
+        transform 250ms ease-in-out;
 }
 
 .toc__list li a:hover {
@@ -178,6 +210,11 @@ p {
     gap: 1rem;
     align-items: flex-start;
     font-size: 1rem;
+    transition: transform 250ms ease-in;
+}
+
+.stage__card:hover {
+    transform: scale(1.05);
 }
 
 .stage__label {
@@ -212,6 +249,12 @@ p {
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     border: 1px solid var(--seco);
+    transition:
+        transform 150ms ease-in-out;
+}
+
+.instruction__tags span:hover {
+    transform: scale(1.50);
 }
 
 .instruction__syscall_supports {
@@ -241,6 +284,11 @@ p {
     gap: 1rem;
     align-items: flex-start;
     font-size: 1rem;
+    transition: transform 250ms ease-in-out;
+}
+
+.impl__stage:hover {
+    transform: scale(1.05);
 }
 
 .impl__label {
@@ -305,7 +353,7 @@ p {
     margin: 1.25rem 0;
 }
 
-.tech__ls {
+.tech__card {
     background: var(--main-card);
     border: 1px solid var(--seco);
     border-radius: 6px;
@@ -314,6 +362,11 @@ p {
     gap: 1rem;
     align-items: flex-start;
     font-size: 1rem;
+    transition: transform 250ms ease-in-out;
+}
+
+.tech__card:hover {
+    transform: scale(1.05);
 }
 
 .tech__item {
@@ -367,4 +420,34 @@ p {
     justify-content: center;
     align-items: center;
     text-align: center;
+}
+
+.nav__home {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0rem 0rem 0rem;
+}
+
+.nav__home a {
+    padding: 0.5rem 1rem;
+    margin: 0.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--main-contra);
+    font-size: 1.25rem;
+    transition:
+        transform 250ms ease-in-out,
+        box-shadow 250ms ease-in-out;
+}
+
+.nav__home a:hover {
+    transform: scale(1.05);
+    box-shadow:
+        0 0 0 2px var(--seco-contra),
+        0 0 0 5px var(--main),
+        0 0 0 8px var(--seco),
+        0 0 0 10px var(--main),
+        0 0 0 12px var(--seco-contra);
 }

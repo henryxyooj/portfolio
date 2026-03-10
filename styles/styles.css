@@ -43,6 +43,29 @@ body {
     background-color: var(--seco);
 }
 
+@view-transition {
+    navigation: auto;
+}
+
+@keyframes slide-to-bottom {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(100vw);
+  }
+}
+
+::view-transition-old(root) {
+  animation: slide-to-bottom 0.3s;
+  z-index: 2;
+}
+
+::view-transition-new(root) {
+  animation: none;
+}
+
 .hero {}
 
 .hero__container {
@@ -209,6 +232,11 @@ body {
     box-shadow: 
         0 0 0 3px var(--main),
         0 0 0 6px var(--seco); 
+    transition: transform 250ms ease-in-out;
+}
+
+.project__tech__skill:hover {
+    transform: scale(1.25);
 }
 
 .project__links {
