@@ -26,6 +26,12 @@ body {
     line-height: 1.5; 
 }
 
+.divider__wrapper {
+    max-width: var(--wrapper);
+    width: 100%;
+    margin: 0 auto;
+}
+
 .divider {
     padding: 2rem;
     display: flex;

@@ -451,3 +451,14 @@ p {
         0 0 0 10px var(--main),
         0 0 0 12px var(--seco-contra);
 }
+
+.video__wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.video__wrapper iframe {
+    max-width: 100%;
+}
